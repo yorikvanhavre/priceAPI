@@ -8,6 +8,12 @@ Data sources contain a couple of generic fields such as Name, Month, Year, Curre
 
 New data sources can be added by instantiating the base source class, and writing a new build() method.
 
+## Current sources:
+
+* PMSP (Prefeitura Municipal de São Paulo)
+* FDE-SP (Secretaria da Educação do Estado de São Paulo)
+* SINAPI-SP (Sistema de pesquisa de preços unitários da Caixa Federal - Estado de São Paulo)
+
 ## Installation
 
 The following python modules must be present to rebuild the sources. They are not needed to simply run a search:
