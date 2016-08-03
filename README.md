@@ -10,7 +10,7 @@ New data sources can be added by instantiating the base source class, and writin
 
 ## Installation
 
-The following python modules must be present. The priceapi module will fail on launch if any of those is not available, so the easiest way to know if you need to install any extra package is to try to import the module in python:
+The following python modules must be present to rebuild the sources. They are not needed to simply run a search:
 
 * csv
 * urllib2
@@ -19,7 +19,19 @@ The following python modules must be present. The priceapi module will fail on l
 
 ## Usage
 
-At the moment the API can only be used from python, and it has ony one function, search:
+Usage: priceapi.py \[OPTIONS\] searchterm1|alternativeterm1 searchterm2 ...
+
+Separate search term by a space to retrieve only entries that contain all
+the search terms. Use a | character to separate alternative search term
+(entries containing one OR the other will be retrieved).
+
+Options: --location=XXX: Specify a city or country name to limit the search to.
+         --source=XXX  : Specify a source name or comma-separated list of
+                         source names to limit the search to.
+                         
+Example: priceapi.py --source=PMSP alvenaria 14cm
+
+The API can also be used from python:
 
 ```
 import priceapi
@@ -29,11 +41,11 @@ priceapi.search("alvenaria 14cm")
 Which will display a table like this:
 
 ```
-Origin  Code        Description                                                             Price     Unit
+Origin    Code      Description                                                             Price     Unit
 
-FDE     04.01.031   ALVENARIA DE BLOCOS DE CONCRETO E=14CM                                  73.99     M2
+FDE-SP    04.01.031 ALVENARIA DE BLOCOS DE CONCRETO E=14CM                                  73.99     M2
 
-Caixa   87449       ALVENARIA DE VEDAÇÃO DE BLOCOS VAZADOS DE CONCRETO DE 14X19X39CM (ESPE  57.62     M2
+SINAPI-SP 87449     ALVENARIA DE VEDAÇÃO DE BLOCOS VAZADOS DE CONCRETO DE 14X19X39CM (ESPE  57.62     M2
                     SSURA 14CM) DE PAREDES COM ÁREA LÍQUIDA MENOR QUE 6M² SEM VÃOS E ARGAM
                     ASSA DE ASSENTAMENTO COM PREPARO EM BETONEIRA. AF_06/2014
 ...
@@ -43,10 +55,11 @@ To search for several terms, just use a space between them.
 
 ## To Do
 
-* Allow to search alternative terms (term1 OR term2)
+* ~~Allow to search alternative terms (term1 OR term2)~~
+* ~~Allow to search by location~~
 * Allow to search by code
-* Add computer-readable output
-* Allow to use the script from the command line
+* ~~Add computer-readable output~~
+* ~~Allow to use the script from the command line~~
 * Allow to convert/update prices by using an index value like CUB in Brazil
 * Add more sources (outside Brazil if possible)
 * Build a GUI?

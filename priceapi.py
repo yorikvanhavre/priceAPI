@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf8 -*-
 
 #***************************************************************************
@@ -22,11 +23,14 @@
 #*                                                                         *
 #***************************************************************************
 
+"""PriceAPI - A python API to retrieve and search prices of construction materials and services."""
+
 __title__  = "Price API"
 __author__ = "Yorik van Havre"
 __url__    = "http://yorik.uncreated.net"
 
-import os,urllib2,tempfile,csv,xlrd,zipfile,openpyxl
+
+import sys,os,urllib2,tempfile,csv,zipfile,getopt
 
 
 class source:
@@ -36,12 +40,12 @@ class source:
     def __init__(self):
         self.URL = None
         self.Name = None
+        self.Description = None
         self.City = None
         self.Country = None
         self.Month = None
         self.Year = None
         self.refURL = None
-        self.Data = None
         self.Currency = None
         self.descriptions = []
         self.values = []
@@ -96,7 +100,7 @@ class source:
                 self.descriptions.append(row[1])
                 self.values.append(row[2])
                 self.units.append(row[3])
-        print "Loaded",self.Name,"(",str(self.Month).zfill(2),"/",self.Year,") /",self.Currency,": ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
+        print "Loaded",self.Name+(11-len(self.Name))*" ","(",str(self.Month).zfill(2),"/",self.Year,")",self.Currency,":",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
 
     def loaddefault(self,filename):
         default = os.path.dirname(os.path.abspath(__file__))+os.sep+"data"+os.sep+filename
@@ -145,7 +149,11 @@ class source:
         for i in range(len(self.codes)):
             ok = None
             for pat in pattern:
-                if pat.upper() in self.descriptions[i].upper():
+                anyok = False
+                for orpat in pat.split("|"):
+                    if orpat.upper() in self.descriptions[i].upper():
+                        anyok = True
+                if anyok:
                     if ok in [None,True]:
                         ok = True
                 else:
@@ -161,7 +169,8 @@ class source_fde(source):
     
     def __init__(self):
         source.__init__(self)
-        self.Name = "FDE São Paulo"
+        self.Name = "FDE-SP"
+        self.Description = "Secretaria da Educação do Estado de São Paulo"
         self.URL = "http://arquivo.fde.sp.gov.br/fde.portal/PermanentFile/File/TAB_SINT_ABR_16.pdf"
         self.City = "São Paulo"
         self.Country = "Brazil"
@@ -273,7 +282,8 @@ class source_pmsp(source):
     
     def __init__(self):
         source.__init__(self)
-        self.Name = "Prefeitura de São Paulo"
+        self.Name = "PMSP"
+        self.Description = "Prefeitura de São Paulo"
         self.URL = "http://www.prefeitura.sp.gov.br/cidade/secretarias/upload/infraestrutura/tabelas_de_custos/arquivos/2016%20Jan/SEM%20DESONERA%C3%87%C3%82O/EDIF/Comp%20Custos%20Unit%20EDIF%20SEM%20Des%20JAN%202016(1).xls"
         self.City = "São Paulo"
         self.Country = "Brazil"
@@ -284,6 +294,7 @@ class source_pmsp(source):
         self.loaddefault("pmsp-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
         
     def build(self):
+        import xlrd
         tf = self.download()
         if not tf:
             return
@@ -311,11 +322,12 @@ class source_pmsp(source):
 
 class source_sinapi(source):
     
-    """SINAPI - Caixa Federal"""
+    """Caixa Federal - Estado de São Paulo"""
     
     def __init__(self):
         source.__init__(self)
-        self.Name = "Caixa Federal (SINAPI)"
+        self.Name = "SINAPI-SP"
+        self.Description = "Caixa Federal - Estado de São Paulo"
         self.URL = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2014-sp/SINAPI_ref_Insumos_Composicoes_SP_062016_NaoDesonerado.zip"
         self.City = "São Paulo"
         self.Country = "Brazil"
@@ -326,6 +338,7 @@ class source_sinapi(source):
         self.loaddefault("sinapi-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
         
     def build(self):
+        import openpyxl
         #tf = self.download()
         #if not tf:
         #    return
@@ -349,16 +362,24 @@ sources = [source_fde(),source_pmsp(),source_sinapi()]
 
 
 def tabulate(orig, cod, descr, val, unit):
+    
+    """prints the 5 pieces of data in a table"""
+    col1 = 11
+    col2 = 12
+    col3 = 72
+    col4 = 10
+    
+    print ""
     cod = str(cod)
     val = str(val)
     orig = orig.split(" ")[0]
-    orig = orig[:6] + (8-len(orig[:6]))*" "
-    cod = cod + (12-len(cod))*" "
-    val = val + (10-len(val))*" "
+    orig = orig[:col1-2] + (col1-len(orig[:col1-2]))*" "
+    cod = cod + (col2-len(cod))*" "
+    val = val + (col4-len(val))*" "
     d = []
     line = ""
     for word in descr.split(" "):
-        if len(line)+len(word) > 75:
+        if len(line)+len(word) > col3-2:
             d.append(line)
             line = word
         else:
@@ -368,24 +389,79 @@ def tabulate(orig, cod, descr, val, unit):
                 line = word
     if line:
         d.append(line)
-    fd = d[0] + (80-len(unicode(d[0].decode("utf8"))))*" "
+    fd = d[0] + (col3-len(unicode(d[0].decode("utf8"))))*" "
     print orig+cod+fd+val+unit
     for l in d[1:]:
-        print 20*" "+l
+        print (col1+col2)*" "+l
 
 
-def search(pattern):
+def search(pattern,location=None,sourcenames=[],prn=True):
+    
+    """search(pattern,[location|sourcenames]): searches sources for a given pattern in descriptions.
+    
+    Prints a list of found entries. Separating search terms with a space (ex. brick wall 14cm)
+    will return only items that have all the terms. Separating terms with a pipe 
+    (ex. brick|concrete wall) will return any item that has one or the other term. If
+    location is given, only the sources that match the location (either country or city) will
+    be searched.If a list of source names are given, only those sources are searched."""
 
-    print ""
-    tabulate("Origin","Code","Description","Price","Unit")
-    print ""
+    #print "searching for :",pattern," sources: ",sourcenames," location: ",location
+
+    if not isinstance(sourcenames,list):
+        sourcenames = [sourcenames]
+    if isinstance(pattern,list):
+        pattern = " ".join(pattern)
+    if prn:
+        tabulate("Origin","Code","Description","Price","Unit")
+    res = []
     for source in sources:
-        results = source.search(pattern)
-        if results:
-            for result in results:
-                tabulate(source.Name,*result)
-                print ""
+        if ( not location and not sourcenames ) \
+        or ( location and ( (source.Country == location) or (source.City == location) ) ) \
+        or ( sourcenames and (source.Name in sourcenames) ):
+            results = source.search(pattern)
+            if results:
+                if prn:
+                    for result in results:
+                        tabulate(source.Name,*result)
+                else:
+                    res.append([source,results])
+    if not prn:
+        return res
 
+
+if __name__ == "__main__":
+    # running directly from command line
+    helpmsg = __doc__+"""
+    
+    Usage: priceapi.py [OPTIONS] searchterm1|alternativeterm1 searchterm2 ...
+    
+    Separate search term by a space to retrieve only entries that contain all
+    the search terms. Use a | character to separate alternative search term
+    (entries containing one OR the other will be retrieved).
+    
+    Options: --location=XXX: Specify a city or country name to limit the search to.
+             --source=XXX  : Specify a source name or comma-separated list of
+                             source names to limit the search to.
+    """
+    
+    if len(sys.argv) == 1:
+        # if no argument is given, print help text
+        print helpmsg
+    else:
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "", ["location=","source="])
+        except getopt.GetoptError:
+            print helpmsg
+            sys.exit()
+        else:
+            location=None
+            sourcenames=[]
+            for o, a in opts:
+                if o == "--location":
+                    location = a
+                elif o == "--source":
+                    sourcenames = a.split(",")
+            search(args,location,sourcenames)
 
 
 
