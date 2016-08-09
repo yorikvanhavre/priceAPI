@@ -31,11 +31,15 @@ Separate search term by a space to retrieve only entries that contain all
 the search terms. Use a | character to separate alternative search term
 (entries containing one OR the other will be retrieved).
 
-Options: --location=XXX: Specify a city or country name to limit the search to.
-         --source=XXX  : Specify a source name or comma-separated list of
-                         source names to limit the search to.
+**Options:** 
+
+`--location=XXX`: Specify a city or country name to limit the search to.
+
+`--source=XXX`: Specify a source name or comma-separated list of source names to limit the search to.
                          
-Example: priceapi.py --source=PMSP alvenaria 14cm
+`--code=XXX`: Searches for a specific code. Dots and hyphens are ignored.
+
+Example: `priceapi.py --source=PMSP alvenaria 14cm`
 
 The API can also be used from python:
 
