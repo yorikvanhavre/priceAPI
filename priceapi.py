@@ -106,7 +106,7 @@ class source:
         default = os.path.dirname(os.path.abspath(__file__))+os.sep+"data"+os.sep+filename
         if os.path.exists(default):
             self.load(default)
-            
+
     def download(self):
         if not self.URL:
             return None
@@ -140,7 +140,7 @@ class source:
                     return tfname[:-4]+".txt"
         else:
             return tfname
-            
+
     def search(self,pattern):
         if not self.codes:
             return None
@@ -162,11 +162,25 @@ class source:
                 results.append([self.codes[i],self.descriptions[i],self.values[i],self.units[i]])
         return results
 
+    def getcode(self,pattern):
+        def cleancode(code):
+            res = ""
+            for char in code:
+                if char.isdigit():
+                    res += char
+            return res
+        results = []
+        pattern = cleancode(pattern)
+        for i in range(len(self.codes)):
+            if pattern in cleancode(self.codes[i]):
+                results.append([self.codes[i],self.descriptions[i],self.values[i],self.units[i]])
+        return results
+
 
 class source_fde(source):
-    
+
     """Secretaria de Educação do Estado de São Paulo"""
-    
+
     def __init__(self):
         source.__init__(self)
         self.Name = "FDE-SP"
@@ -213,7 +227,7 @@ class source_fde(source):
             for l in f:
                 ln += 1
                 l = l.strip()
-                
+
                 # skip lines
                 skip = False
                 if datatype == "skip":
@@ -233,7 +247,7 @@ class source_fde(source):
                             break
                 if skip:
                     continue
-                
+
                 # distribute lines according to type
                 sk = False
                 for p in pairs:
@@ -277,9 +291,9 @@ class source_fde(source):
 
 
 class source_pmsp(source):
-    
+
     """Prefeitura municipal de São Paulo"""
-    
+
     def __init__(self):
         source.__init__(self)
         self.Name = "PMSP"
@@ -292,7 +306,7 @@ class source_pmsp(source):
         self.refURL = "http://www.prefeitura.sp.gov.br/cidade/secretarias/infraestrutura/tabelas_de_custos/index.php?p=215107"
         self.Currency = "BRL"
         self.loaddefault("pmsp-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
-        
+
     def build(self):
         import xlrd
         tf = self.download()
@@ -321,9 +335,9 @@ class source_pmsp(source):
 
 
 class source_sinapi(source):
-    
+
     """Caixa Federal - Estado de São Paulo"""
-    
+
     def __init__(self):
         source.__init__(self)
         self.Name = "SINAPI-SP"
@@ -336,7 +350,7 @@ class source_sinapi(source):
         self.refURL = "https://sinapiexcel.wordpress.com/"
         self.Currency = "BRL"
         self.loaddefault("sinapi-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
-        
+
     def build(self):
         import openpyxl
         #tf = self.download()
@@ -362,13 +376,13 @@ sources = [source_fde(),source_pmsp(),source_sinapi()]
 
 
 def tabulate(orig, cod, descr, val, unit):
-    
+
     """prints the 5 pieces of data in a table"""
     col1 = 11
     col2 = 12
     col3 = 72
     col4 = 10
-    
+
     print ""
     cod = str(cod)
     val = str(val)
@@ -395,12 +409,12 @@ def tabulate(orig, cod, descr, val, unit):
         print (col1+col2)*" "+l
 
 
-def search(pattern,location=None,sourcenames=[],prn=True):
-    
-    """search(pattern,[location|sourcenames]): searches sources for a given pattern in descriptions.
-    
+def search(pattern,location=None,sourcenames=[],code=False,prn=True):
+
+    """search(pattern,[location|sourcenames|code]): searches sources for a given pattern in descriptions.
+
     Prints a list of found entries. Separating search terms with a space (ex. brick wall 14cm)
-    will return only items that have all the terms. Separating terms with a pipe 
+    will return only items that have all the terms. Separating terms with a pipe
     (ex. brick|concrete wall) will return any item that has one or the other term. If
     location is given, only the sources that match the location (either country or city) will
     be searched.If a list of source names are given, only those sources are searched."""
@@ -418,7 +432,10 @@ def search(pattern,location=None,sourcenames=[],prn=True):
         if ( not location and not sourcenames ) \
         or ( location and ( (source.Country == location) or (source.City == location) ) ) \
         or ( sourcenames and (source.Name in sourcenames) ):
-            results = source.search(pattern)
+            if code:
+                results = source.getcode(pattern)
+            else:
+                results = source.search(pattern)
             if results:
                 if prn:
                     for result in results:
@@ -432,36 +449,42 @@ def search(pattern,location=None,sourcenames=[],prn=True):
 if __name__ == "__main__":
     # running directly from command line
     helpmsg = __doc__+"""
-    
+
     Usage: priceapi.py [OPTIONS] searchterm1|alternativeterm1 searchterm2 ...
-    
+
     Separate search term by a space to retrieve only entries that contain all
     the search terms. Use a | character to separate alternative search term
     (entries containing one OR the other will be retrieved).
-    
+
     Options: --location=XXX: Specify a city or country name to limit the search to.
              --source=XXX  : Specify a source name or comma-separated list of
                              source names to limit the search to.
+             --code=XXX    : Searches for a specific code. Dots and hyphens are
+                             ignored.
     """
-    
+
     if len(sys.argv) == 1:
         # if no argument is given, print help text
         print helpmsg
     else:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["location=","source="])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["location=","source=","code="])
         except getopt.GetoptError:
             print helpmsg
             sys.exit()
         else:
             location=None
             sourcenames=[]
+            code=None
             for o, a in opts:
                 if o == "--location":
                     location = a
                 elif o == "--source":
                     sourcenames = a.split(",")
-            search(args,location,sourcenames)
+                elif o == "--code":
+                    args = a
+                    code = True
+            search(args,location,sourcenames,code)
 
 
 

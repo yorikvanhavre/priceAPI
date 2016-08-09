@@ -63,7 +63,7 @@ To search for several terms, just use a space between them.
 
 * ~~Allow to search alternative terms (term1 OR term2)~~
 * ~~Allow to search by location~~
-* Allow to search by code
+* ~~Allow to search by code~~
 * ~~Add computer-readable output~~
 * ~~Allow to use the script from the command line~~
 * Allow to convert/update prices by using an index value like CUB in Brazil
