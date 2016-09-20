@@ -30,7 +30,7 @@ __author__ = "Yorik van Havre"
 __url__    = "http://yorik.uncreated.net"
 
 
-import sys,os,urllib2,tempfile,csv,zipfile,getopt
+import sys,os,urllib2,tempfile,csv,zipfile,getopt,unicodedata
 
 
 class source:
@@ -142,6 +142,12 @@ class source:
             return tfname
 
     def search(self,pattern):
+        def cleanstring(inputstr):
+            if not isinstance(inputstr,unicode):
+                inputstr = inputstr.decode("utf8")
+            nfkd_form = unicodedata.normalize('NFKD', inputstr)
+            cleanstr = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+            return cleanstr.upper()
         if not self.codes:
             return None
         pattern = pattern.split(" ")
@@ -151,7 +157,7 @@ class source:
             for pat in pattern:
                 anyok = False
                 for orpat in pat.split("|"):
-                    if orpat.upper() in self.descriptions[i].upper():
+                    if cleanstring(orpat) in cleanstring(self.descriptions[i]):
                         anyok = True
                 if anyok:
                     if ok in [None,True]:
@@ -378,9 +384,14 @@ sources = [source_fde(),source_pmsp(),source_sinapi()]
 def tabulate(orig, cod, descr, val, unit):
 
     """prints the 5 pieces of data in a table"""
+
     col1 = 11
     col2 = 12
-    col3 = 72
+    try:
+        rows, columns = os.popen('stty size', 'r').read().split()
+        col3 = int(columns) - 36
+    except:
+        col3 = 72
     col4 = 10
 
     print ""
