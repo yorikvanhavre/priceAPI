@@ -23,7 +23,7 @@ The following python modules must be present to rebuild the sources. They are no
 * xlrd
 * openpyxl
 
-## Usage
+## Command line usage
 
 Usage: priceapi.py \[OPTIONS\] searchterm1|alternativeterm1 searchterm2 ...
 
@@ -63,6 +63,20 @@ SINAPI-SP 87449     ALVENARIA DE VEDAÇÃO DE BLOCOS VAZADOS DE CONCRETO DE 14X1
 
 To search for several terms, just use a space between them.
 
+## Web interface
+
+The webprice.py provides a web interface for the priceAPI. The functionality is about the same as the command line
+interface. You can search for terms, and optionally specify location and source. See a working example 
+[here](http://www.uncreated.net/priceapi/webapi.py).
+
+To use the web interface, you need a web server that supports running python files. Simply copy priceapi.py,
+webprice.py and the data folder to a location on your web server, and point your browser to webprice.py.
+
+You might need to change the permission of the two .py files, make sure they are both executable by all users.
+
+If there are files named favicon.ico and stylesheet.css in the same folder as webprice.py, they will be loaded
+automatically.
+
 ## To Do
 
 * ~~Allow to search alternative terms (term1 OR term2)~~
@@ -72,5 +86,5 @@ To search for several terms, just use a space between them.
 * ~~Allow to use the script from the command line~~
 * Allow to convert/update prices by using an index value like CUB in Brazil
 * Add more sources (outside Brazil if possible)
-* Build a GUI?
+* ~~Build a GUI?~~
 * Parse the SINAPI pdfs (currently using an xlsx from a website where a kind soul provides a conversion)

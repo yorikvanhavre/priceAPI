@@ -74,33 +74,34 @@ class source:
 
     def save(self,filename):
         if self.codes:
-            with open(filename, 'wb') as csvfile:
-                csvfile = csv.writer(csvfile)
-                for i in range(len(self.codes)):
-                    if isinstance(self.descriptions[i],unicode):
-                        d = self.descriptions[i].encode("utf8")
-                    else:
-                        d = self.descriptions[i]
-                    if isinstance(self.units[i],unicode):
-                        u = self.units[i].encode("utf8")
-                    else:
-                        u = self.units[i]
-                    #print self.codes[i],d,self.values[i],self.units[i]
-                    csvfile.writerow([self.codes[i],d,self.values[i],u])
+            csvfile = open(filename, 'wb')
+            csvw = csv.writer(csvfile)
+            for i in range(len(self.codes)):
+                if isinstance(self.descriptions[i],unicode):
+                    d = self.descriptions[i].encode("utf8")
+                else:
+                    d = self.descriptions[i]
+                if isinstance(self.units[i],unicode):
+                    u = self.units[i].encode("utf8")
+                else:
+                    u = self.units[i]
+                #print self.codes[i],d,self.values[i],self.units[i]
+                csvw.writerow([self.codes[i],d,self.values[i],u])
+            csvfile.close()
 
     def load(self,filename):
-        with open(filename, 'rb') as csvfile:
-            csvfile = csv.reader(csvfile)
-            self.descriptions = []
-            self.values = []
-            self.units = []
-            self.codes = []
-            for row in csvfile:
-                self.codes.append(row[0])
-                self.descriptions.append(row[1])
-                self.values.append(row[2])
-                self.units.append(row[3])
-        print "Loaded",self.Name+(11-len(self.Name))*" ","(",str(self.Month).zfill(2),"/",self.Year,")",self.Currency,":",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
+        csvfile = open(filename, 'rb')
+        csvr = csv.reader(csvfile)
+        self.descriptions = []
+        self.values = []
+        self.units = []
+        self.codes = []
+        for row in csvr:
+            self.codes.append(row[0])
+            self.descriptions.append(row[1])
+            self.values.append(row[2])
+            self.units.append(row[3])
+        csvfile.close()
 
     def loaddefault(self,filename):
         default = os.path.dirname(os.path.abspath(__file__))+os.sep+"data"+os.sep+filename
@@ -204,95 +205,95 @@ class source_fde(source):
         tf = self.download()
         if not tf:
             return
-        with open(tf,"rb") as f:
-            self.descriptions = []
-            self.values = []
-            self.units = []
-            self.codes = []
-            datatype = ""
-            skipstart = ["relat\xc3\x93rio","tabela","data","ls","descrição","bdi","unidade","página","valor"]
-            skipall = ["serviço"]
-            doubles = ["FUNDAÇÃO-ESTACA-TUBULÃO","DIREÇOES","PILARES","FORNEC. E INST.","OU IGUAL 60CM","IGUAL 1,50X1,50","(MANUAL)","INCLINADAS 39X39X10CM",
-                       "REVESTIMENTOS","ENTARUGAMENTO","L=101CM","AMERICANA-GRANITO","SOBREPOR","FECHADURAS SOBREPOR","DE FERRO POLIDO","FERRO","48%","INSTALADO",
-                       "PINTURA ESMALTE","ESMALTE","PINTURA ESMALTE","COM PINTURA ESMALTE","H=260MM","H=180MM","FACES COM PINT FACES APARENTES.","INF PLANO COM PINT FACES APARENT",
-                       "INF PLANO COM PINT FACES APARENTE","PADRAO CRECHE","CRECHE","NATURAL E=0,80MM PERFIL 700/800","E=0,80MM COM TAMPÃO","BARRO SOBRE LAJE","VAO LIVRE",
-                       "FIBRO-CIM SOBRE LAJE","BARRO/FIBRO-CIM/AL/PLAST/PLANA PRE-FAB","S/REAPROV","PARAFUSOS","32MM 1 1/4\"","40MM 1 1/2\"","PARTICIPANTE)","FECHO ROTATIVO.",
-                       "INCL.FIX.NA PAREDE","FORNECIDO E INSTALADO","AUTOMATICO","COMBUST.NBR 15526/07","P/MANGUEIRA","KVA","PARA CALÇADA AES ELETROPAULO","PARA CALÇADA - CPFL, EDP BA",
-                       "ELETROP/BANDEIRANTE/CPFL/ELEKTRO","V):BANDEIRANTE/CPFL/ELEKTRO","ELETROP/BANDEIRANTE/ELEKTRO","QUENTE","GALV.A QUENTE","AMARELO.","25MM AMARELO.","25MM AMARELO",
-                       "ELETROD.PVC RIGIDO","ELETROD.PVC RÍGIDO","RÍGIDO","LAMP.FLUORESC.COMPACTA (1X23W)","(2X32W)","(2x32W)","(4X16W)","(4x16W)","(2X28W)","(1X28W)","VAPOR SODIO 1X70W","FLUOR. 2X36W",
-                       "TUBULAR DE VAPOR DE SÓDIO 1X150W.","TUBULAR DE VAPOR DE SÓDIO 1X250W.","INTERNA)","PASSAGEM","B.T","RECALQUE","FLUORESC","PENDENTES","OLHAL","A.T.","INTERNA)",
-                       "PERFILADO","LAG","INCANDESC","FLUORESC","FACHADA","TIPO OLHAL","A.T","P/BARRAM.COBRE A.T","VARA/ESTRIBO FRONTAL","PRESSAO P/CABOS","PERFILADOS","JARDINS",
-                       "FLUORESCENTES","P.RAIOS","DE COBRE NU","ESTALEIRO","COMPLETO","BL.BT","QD.COMANDO BOMBA RECALQUE","(IL-44)","(IL-45)","SOQUETES (IL-62)","P/SUSTENTAÇÃO DE FORRO PVC",
-                       "EST","QUADRO","CERÂMICOS","EXPANDIDA","ASSENTAMENTO","C/ARGAMASSA","ACUSTICA","COEF.ATRITO MINIMO 0,4 USO EXCLUSIVO","7CM","EXCLUSIVO PADRAO CRECHE","17CM)","BASE",
-                       "ARG ASSENT.","BAGUETES","ESTRUTURA DE MADEIRA","APARENTE","MADEIRA","C/LIXAMENTO","QUIMICO","C/PROD.QUIMICO","MASSA","ZARCAO","H=185CM/SAPAT","H=185CM/BROCA","H=235CM/SAPATA",
-                       "H=235CM/BROCA","GROSSA","LASTRO DE BRITA","TOPO DA COPA.","ALTURA SUPERIOR A 10M ","INSPEÇÃO Ø 0,60M","P/CHUVEIRO,INCLUSIVE SUPORTE AR COND.","MICTÓRIO E 4 PONTOS CHUV.",
-                       "NATURAL OU GELADA.","10000 BTU.","INCLUSIVE MONTAGEM E FRETE.","LOGOTIPO","E COMBUST USO EXCLUS UNID.MÓVEL","AJUDANTES.","OBRA","PROJ.REF.1201040-PD.ÍNDIO","INCLUSO COLETA DE EFLUENTES",
-                       "EFLUENTES","BRAILLE","(INCL.CONEX.E FIXAÇOES EM POSTE)","NBR 13897","LOGOTIPO","SOLVENTE","MONOCOMPONENTE","ADENSADO","7CM","M3X"]
-            pairs = [["QE-12 QUADRA DE ESPORTES/PISO DE CONCRETO ARMADO/FUNDACAO DIRET-600","M2"]]
-            ln = 0
-            for l in f:
-                ln += 1
-                l = l.strip()
+        f = open(tf,"rb")
+        self.descriptions = []
+        self.values = []
+        self.units = []
+        self.codes = []
+        datatype = ""
+        skipstart = ["relat\xc3\x93rio","tabela","data","ls","descrição","bdi","unidade","página","valor"]
+        skipall = ["serviço"]
+        doubles = ["FUNDAÇÃO-ESTACA-TUBULÃO","DIREÇOES","PILARES","FORNEC. E INST.","OU IGUAL 60CM","IGUAL 1,50X1,50","(MANUAL)","INCLINADAS 39X39X10CM",
+                   "REVESTIMENTOS","ENTARUGAMENTO","L=101CM","AMERICANA-GRANITO","SOBREPOR","FECHADURAS SOBREPOR","DE FERRO POLIDO","FERRO","48%","INSTALADO",
+                   "PINTURA ESMALTE","ESMALTE","PINTURA ESMALTE","COM PINTURA ESMALTE","H=260MM","H=180MM","FACES COM PINT FACES APARENTES.","INF PLANO COM PINT FACES APARENT",
+                   "INF PLANO COM PINT FACES APARENTE","PADRAO CRECHE","CRECHE","NATURAL E=0,80MM PERFIL 700/800","E=0,80MM COM TAMPÃO","BARRO SOBRE LAJE","VAO LIVRE",
+                   "FIBRO-CIM SOBRE LAJE","BARRO/FIBRO-CIM/AL/PLAST/PLANA PRE-FAB","S/REAPROV","PARAFUSOS","32MM 1 1/4\"","40MM 1 1/2\"","PARTICIPANTE)","FECHO ROTATIVO.",
+                   "INCL.FIX.NA PAREDE","FORNECIDO E INSTALADO","AUTOMATICO","COMBUST.NBR 15526/07","P/MANGUEIRA","KVA","PARA CALÇADA AES ELETROPAULO","PARA CALÇADA - CPFL, EDP BA",
+                   "ELETROP/BANDEIRANTE/CPFL/ELEKTRO","V):BANDEIRANTE/CPFL/ELEKTRO","ELETROP/BANDEIRANTE/ELEKTRO","QUENTE","GALV.A QUENTE","AMARELO.","25MM AMARELO.","25MM AMARELO",
+                   "ELETROD.PVC RIGIDO","ELETROD.PVC RÍGIDO","RÍGIDO","LAMP.FLUORESC.COMPACTA (1X23W)","(2X32W)","(2x32W)","(4X16W)","(4x16W)","(2X28W)","(1X28W)","VAPOR SODIO 1X70W","FLUOR. 2X36W",
+                   "TUBULAR DE VAPOR DE SÓDIO 1X150W.","TUBULAR DE VAPOR DE SÓDIO 1X250W.","INTERNA)","PASSAGEM","B.T","RECALQUE","FLUORESC","PENDENTES","OLHAL","A.T.","INTERNA)",
+                   "PERFILADO","LAG","INCANDESC","FLUORESC","FACHADA","TIPO OLHAL","A.T","P/BARRAM.COBRE A.T","VARA/ESTRIBO FRONTAL","PRESSAO P/CABOS","PERFILADOS","JARDINS",
+                   "FLUORESCENTES","P.RAIOS","DE COBRE NU","ESTALEIRO","COMPLETO","BL.BT","QD.COMANDO BOMBA RECALQUE","(IL-44)","(IL-45)","SOQUETES (IL-62)","P/SUSTENTAÇÃO DE FORRO PVC",
+                   "EST","QUADRO","CERÂMICOS","EXPANDIDA","ASSENTAMENTO","C/ARGAMASSA","ACUSTICA","COEF.ATRITO MINIMO 0,4 USO EXCLUSIVO","7CM","EXCLUSIVO PADRAO CRECHE","17CM)","BASE",
+                   "ARG ASSENT.","BAGUETES","ESTRUTURA DE MADEIRA","APARENTE","MADEIRA","C/LIXAMENTO","QUIMICO","C/PROD.QUIMICO","MASSA","ZARCAO","H=185CM/SAPAT","H=185CM/BROCA","H=235CM/SAPATA",
+                   "H=235CM/BROCA","GROSSA","LASTRO DE BRITA","TOPO DA COPA.","ALTURA SUPERIOR A 10M ","INSPEÇÃO Ø 0,60M","P/CHUVEIRO,INCLUSIVE SUPORTE AR COND.","MICTÓRIO E 4 PONTOS CHUV.",
+                   "NATURAL OU GELADA.","10000 BTU.","INCLUSIVE MONTAGEM E FRETE.","LOGOTIPO","E COMBUST USO EXCLUS UNID.MÓVEL","AJUDANTES.","OBRA","PROJ.REF.1201040-PD.ÍNDIO","INCLUSO COLETA DE EFLUENTES",
+                   "EFLUENTES","BRAILLE","(INCL.CONEX.E FIXAÇOES EM POSTE)","NBR 13897","LOGOTIPO","SOLVENTE","MONOCOMPONENTE","ADENSADO","7CM","M3X"]
+        pairs = [["QE-12 QUADRA DE ESPORTES/PISO DE CONCRETO ARMADO/FUNDACAO DIRET-600","M2"]]
+        ln = 0
+        for l in f:
+            ln += 1
+            l = l.strip()
 
-                # skip lines
-                skip = False
-                if datatype == "skip":
-                    datatype = "description"
+            # skip lines
+            skip = False
+            if datatype == "skip":
+                datatype = "description"
+                skip = True
+            if not l:
+                skip = True
+            for s in skipstart:
+                if l.lower().startswith(s):
+                    #print "found line starting with ",s," : ",l
                     skip = True
-                if not l:
-                    skip = True
-                for s in skipstart:
-                    if l.lower().startswith(s):
-                        #print "found line starting with ",s," : ",l
+                    break
+            if not skip:
+                for s in skipall:
+                    if l.lower() == s:
                         skip = True
                         break
-                if not skip:
-                    for s in skipall:
-                        if l.lower() == s:
-                            skip = True
-                            break
-                if skip:
-                    continue
+            if skip:
+                continue
 
-                # distribute lines according to type
-                sk = False
-                for p in pairs:
-                    if l == p[0]:
-                        datatype = "description"
-                        self.descriptions.append(l+" "+p[1])
-                        datatype = "skip"
-                        sk = True
-                        break
-                if sk:
-                    continue
-                if l in doubles:
+            # distribute lines according to type
+            sk = False
+            for p in pairs:
+                if l == p[0]:
                     datatype = "description"
-                    self.descriptions[-1] = self.descriptions[-1]+" "+l
+                    self.descriptions.append(l+" "+p[1])
+                    datatype = "skip"
+                    sk = True
+                    break
+            if sk:
+                continue
+            if l in doubles:
+                datatype = "description"
+                self.descriptions[-1] = self.descriptions[-1]+" "+l
+                continue
+            if len(l.split(".")) == 3:
+                a = l.split(".")
+                if a[0].isdigit() and a[1].isdigit() and a[2].isdigit():
+                    datatype = "code"
+                    self.codes.append(l)
                     continue
-                if len(l.split(".")) == 3:
-                    a = l.split(".")
-                    if a[0].isdigit() and a[1].isdigit() and a[2].isdigit():
-                        datatype = "code"
-                        self.codes.append(l)
-                        continue
-                if len(l.split(",")) == 2:
-                    a = l.split(",")
-                    if a[0].isdigit() and a[1].isdigit():
-                        datatype = "value"
-                        self.values.append(float(l.replace(",",".")))
-                        continue
-                if (len(l) <= 2):
-                    if not(l[0].isdigit()):
-                        datatype = "unit"
-                        self.units.append(l)
-                        continue
-                if (len(l) >= 3):
-                    if not(l[0].isdigit()) or (l[1] == " "):
-                        datatype = "description"
-                        self.descriptions.append(l)
-                        continue
-                print "unparsed line: (",ln,") ",l
-
+            if len(l.split(",")) == 2:
+                a = l.split(",")
+                if a[0].isdigit() and a[1].isdigit():
+                    datatype = "value"
+                    self.values.append(float(l.replace(",",".")))
+                    continue
+            if (len(l) <= 2):
+                if not(l[0].isdigit()):
+                    datatype = "unit"
+                    self.units.append(l)
+                    continue
+            if (len(l) >= 3):
+                if not(l[0].isdigit()) or (l[1] == " "):
+                    datatype = "description"
+                    self.descriptions.append(l)
+                    continue
+            print "unparsed line: (",ln,") ",l
+        f.close()
         print "parsed data: ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
 
 
@@ -318,25 +319,26 @@ class source_pmsp(source):
         tf = self.download()
         if not tf:
             return
-        with xlrd.open_workbook(tf) as f:
-            self.descriptions = []
-            self.values = []
-            self.units = []
-            self.codes = []
-            sh = f.sheets()[0]
-            for i in range(1,sh.nrows):
-                r = sh.row(i)
-                if (r[0].ctype == xlrd.XL_CELL_NUMBER) and (r[1].ctype == xlrd.XL_CELL_TEXT) and (r[7].ctype == xlrd.XL_CELL_TEXT) and (r[9].ctype == xlrd.XL_CELL_NUMBER):
-                    c = str(int(r[0].value))
-                    cs = c[0:2]+"."+c[2:4]+"."
-                    if len(c[4:]) == 1:
-                        cs += "0"+c[4:]
-                    else:
-                        cs += c[4:]
-                    self.codes.append(cs)
-                    self.descriptions.append(r[1].value)
-                    self.units.append(r[7].value)
-                    self.values.append(r[9].value)
+        f = xlrd.open_workbook(tf)
+        self.descriptions = []
+        self.values = []
+        self.units = []
+        self.codes = []
+        sh = f.sheets()[0]
+        for i in range(1,sh.nrows):
+            r = sh.row(i)
+            if (r[0].ctype == xlrd.XL_CELL_NUMBER) and (r[1].ctype == xlrd.XL_CELL_TEXT) and (r[7].ctype == xlrd.XL_CELL_TEXT) and (r[9].ctype == xlrd.XL_CELL_NUMBER):
+                c = str(int(r[0].value))
+                cs = c[0:2]+"."+c[2:4]+"."
+                if len(c[4:]) == 1:
+                    cs += "0"+c[4:]
+                else:
+                    cs += c[4:]
+                self.codes.append(cs)
+                self.descriptions.append(r[1].value)
+                self.units.append(r[7].value)
+                self.values.append(r[9].value)
+        f.close()
         print "parsed data: ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
 
 
@@ -420,7 +422,7 @@ def tabulate(orig, cod, descr, val, unit):
         print (col1+col2)*" "+l
 
 
-def search(pattern,location=None,sourcenames=[],code=False,prn=True):
+def search(pattern,location=None,sourcenames=[],code=False,prn=False):
 
     """search(pattern,[location|sourcenames|code]): searches sources for a given pattern in descriptions.
 
@@ -433,7 +435,10 @@ def search(pattern,location=None,sourcenames=[],code=False,prn=True):
     #print "searching for :",pattern," sources: ",sourcenames," location: ",location
 
     if not isinstance(sourcenames,list):
-        sourcenames = [sourcenames]
+        if sourcenames == None:
+            sourcenames = []
+        else:
+            sourcenames = [sourcenames]
     if isinstance(pattern,list):
         pattern = " ".join(pattern)
     if prn:
@@ -473,6 +478,10 @@ if __name__ == "__main__":
              --code=XXX    : Searches for a specific code. Dots and hyphens are
                              ignored.
     """
+    
+    for s in sources:
+        print "Loaded",s.Name+(11-len(s.Name))*" ","(",str(s.Month).zfill(2),"/",s.Year,")",s.Currency,":",len(s.codes),"/",len(s.descriptions),"/",len(s.values),"/",len(s.units)
+
 
     if len(sys.argv) == 1:
         # if no argument is given, print help text
@@ -495,7 +504,7 @@ if __name__ == "__main__":
                 elif o == "--code":
                     args = a
                     code = True
-            search(args,location,sourcenames,code)
+            search(args,location,sourcenames,code,prn=True)
 
 
 
