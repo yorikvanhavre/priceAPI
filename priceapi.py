@@ -51,6 +51,7 @@ class source:
         self.values = []
         self.units = []
         self.codes = []
+        self.CUB = None
 
     def __repr__(self):
         s = "Price source"
@@ -72,7 +73,9 @@ class source:
         if ln < len(self.codes):
             print self.codes[ln],"/",self.descriptions[ln],"/",self.values[ln],"/",self.units[ln]
 
-    def save(self,filename):
+    def save(self,filename=None):
+        if not filename:
+            filename = os.path.dirname(os.path.abspath(__file__))+os.sep+"data"+os.sep+self.defaultfile
         if self.codes:
             csvfile = open(filename, 'wb')
             csvw = csv.writer(csvfile)
@@ -142,7 +145,7 @@ class source:
         else:
             return tfname
 
-    def search(self,pattern):
+    def search(self,pattern,cub=None):
         def cleanstring(inputstr):
             if not isinstance(inputstr,unicode):
                 inputstr = inputstr.decode("utf8")
@@ -166,10 +169,10 @@ class source:
                 else:
                     ok = False
             if ok:
-                results.append([self.codes[i],self.descriptions[i],self.values[i],self.units[i]])
+                results.append([self.codes[i],self.descriptions[i],self.indexize(self.values[i],cub),self.units[i]])
         return results
 
-    def getcode(self,pattern):
+    def getcode(self,pattern,cub=None):
         def cleancode(code):
             res = ""
             for char in code:
@@ -180,8 +183,15 @@ class source:
         pattern = cleancode(pattern)
         for i in range(len(self.codes)):
             if pattern in cleancode(self.codes[i]):
-                results.append([self.codes[i],self.descriptions[i],self.values[i],self.units[i]])
+                results.append([self.codes[i],self.descriptions[i],self.indexize(self.values[i],cub),self.units[i]])
         return results
+
+    def indexize(self,value,cub=None):
+        if cub and self.CUB:
+            fact = cub/self.CUB
+            return value*fact
+        else:
+            return value
 
 
 class source_fde(source):
@@ -195,14 +205,26 @@ class source_fde(source):
         self.URL = "http://arquivo.fde.sp.gov.br/fde.portal/PermanentFile/File/TAB_SINT_ABR_16.pdf"
         self.City = "São Paulo"
         self.Country = "Brazil"
-        self.Month = 04
+        self.Month = 07
         self.Year = 2016
         self.refURL = "http://www.fde.sp.gov.br/PagePublic/Interna.aspx?codigoMenu=189"
         self.Currency = "BRL"
-        self.loaddefault("fde-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
+        self.defaultfile = "fde-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
+        self.loaddefault(self.defaultfile)
+        self.CUB = 1292.18
 
     def build(self):
-        tf = self.download()
+        tf = None
+        tf = os.path.dirname(os.path.abspath(__file__))+os.sep+"sources"+os.sep+"fde.txt"
+        if not tf:
+            defaultlocation = os.path.dirname(os.path.abspath(__file__))+os.sep+"sources"+os.sep+"fde.pdf"
+            if os.path.exists(defaultlocation):
+                print "building from ",defaultlocation
+                tf = defaultlocation
+                os.system("pdftotext "+tf)
+                tf = tf[:-4]+".txt"
+            else:
+                tf = self.download()
         if not tf:
             return
         f = open(tf,"rb")
@@ -212,6 +234,7 @@ class source_fde(source):
         self.codes = []
         datatype = ""
         skipstart = ["relat\xc3\x93rio","tabela","data","ls","descrição","bdi","unidade","página","valor"]
+        skipstartexcept=["TABELA DE BASQUETE COM ARO E CESTO"]
         skipall = ["serviço"]
         doubles = ["FUNDAÇÃO-ESTACA-TUBULÃO","DIREÇOES","PILARES","FORNEC. E INST.","OU IGUAL 60CM","IGUAL 1,50X1,50","(MANUAL)","INCLINADAS 39X39X10CM",
                    "REVESTIMENTOS","ENTARUGAMENTO","L=101CM","AMERICANA-GRANITO","SOBREPOR","FECHADURAS SOBREPOR","DE FERRO POLIDO","FERRO","48%","INSTALADO",
@@ -228,7 +251,9 @@ class source_fde(source):
                    "ARG ASSENT.","BAGUETES","ESTRUTURA DE MADEIRA","APARENTE","MADEIRA","C/LIXAMENTO","QUIMICO","C/PROD.QUIMICO","MASSA","ZARCAO","H=185CM/SAPAT","H=185CM/BROCA","H=235CM/SAPATA",
                    "H=235CM/BROCA","GROSSA","LASTRO DE BRITA","TOPO DA COPA.","ALTURA SUPERIOR A 10M ","INSPEÇÃO Ø 0,60M","P/CHUVEIRO,INCLUSIVE SUPORTE AR COND.","MICTÓRIO E 4 PONTOS CHUV.",
                    "NATURAL OU GELADA.","10000 BTU.","INCLUSIVE MONTAGEM E FRETE.","LOGOTIPO","E COMBUST USO EXCLUS UNID.MÓVEL","AJUDANTES.","OBRA","PROJ.REF.1201040-PD.ÍNDIO","INCLUSO COLETA DE EFLUENTES",
-                   "EFLUENTES","BRAILLE","(INCL.CONEX.E FIXAÇOES EM POSTE)","NBR 13897","LOGOTIPO","SOLVENTE","MONOCOMPONENTE","ADENSADO","7CM","M3X"]
+                   "EFLUENTES","BRAILLE","(INCL.CONEX.E FIXAÇOES EM POSTE)","NBR 13897","LOGOTIPO","SOLVENTE","MONOCOMPONENTE","ADENSADO","7CM","M3X","TRAÇO 1:4 ESPESSURA 3CM",
+                   "APLICAÇAO 4 DEMÃOS INCLUS.TELA ESTRUTURAN","ACRILICO BASE SOLVENTE","DEMÃOS SEMIFLEXIVEL + 4 DEMÃOS FL","COM APLICAÇÃO 4 DEMÃOS","ALTURA SUPERIOR A 10M",
+                   "TRANSPLANTE INTERNO DE ÁRVORE COM 30CM<DAP<45CM APLICAVEL","EXCLUSIVAMENTE PELA GOE/DOEV UMA UNIDADE-D","TRIAGEM (ATT)"]
         pairs = [["QE-12 QUADRA DE ESPORTES/PISO DE CONCRETO ARMADO/FUNDACAO DIRET-600","M2"]]
         ln = 0
         for l in f:
@@ -244,9 +269,10 @@ class source_fde(source):
                 skip = True
             for s in skipstart:
                 if l.lower().startswith(s):
-                    #print "found line starting with ",s," : ",l
-                    skip = True
-                    break
+                    if not l in skipstartexcept:
+                        #print "found line starting with ",s," : ",l
+                        skip = True
+                        break
             if not skip:
                 for s in skipall:
                     if l.lower() == s:
@@ -312,7 +338,9 @@ class source_pmsp(source):
         self.Year = 2016
         self.refURL = "http://www.prefeitura.sp.gov.br/cidade/secretarias/infraestrutura/tabelas_de_custos/index.php?p=215107"
         self.Currency = "BRL"
-        self.loaddefault("pmsp-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
+        self.defaultfile = "pmsp-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
+        self.loaddefault(self.defaultfile)
+        self.CUB = 1232.14
 
     def build(self):
         import xlrd
@@ -353,19 +381,27 @@ class source_sinapi(source):
         self.URL = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2014-sp/SINAPI_ref_Insumos_Composicoes_SP_062016_NaoDesonerado.zip"
         self.City = "São Paulo"
         self.Country = "Brazil"
-        self.Month = 06
+        self.Month = 07
         self.Year = 2016
         self.refURL = "https://sinapiexcel.wordpress.com/"
         self.Currency = "BRL"
-        self.loaddefault("sinapi-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv")
+        self.defaultfile = "sinapi-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
+        self.loaddefault(self.defaultfile)
+        self.CUB = 1292.18
 
     def build(self):
         import openpyxl
-        #tf = self.download()
-        #if not tf:
-        #    return
-        tf = "examples/sinapi.xlsx"
-        f =  openpyxl.load_workbook(tf)
+        tf = None
+        if not tf:
+            defaultlocation = os.path.dirname(os.path.abspath(__file__))+os.sep+"sources"+os.sep+"sinapi.xlsx"
+            if os.path.exists(defaultlocation):
+                print "building from ",defaultlocation
+                tf = defaultlocation
+            else:
+                tf = self.download()
+        if not tf:
+            return
+        f = openpyxl.load_workbook(tf)
         self.descriptions = []
         self.values = []
         self.units = []
@@ -422,15 +458,21 @@ def tabulate(orig, cod, descr, val, unit):
         print (col1+col2)*" "+l
 
 
-def search(pattern,location=None,sourcenames=[],code=False,prn=False):
+def search(pattern,location=None,sourcenames=[],code=False,prn=False,cub=None):
 
-    """search(pattern,[location|sourcenames|code]): searches sources for a given pattern in descriptions.
+    """search(pattern,[location|sourcenames|code|prn|cub]): searches sources for a given 
+    pattern in descriptions.
 
     Prints a list of found entries. Separating search terms with a space (ex. brick wall 14cm)
     will return only items that have all the terms. Separating terms with a pipe
     (ex. brick|concrete wall) will return any item that has one or the other term. If
     location is given, only the sources that match the location (either country or city) will
-    be searched.If a list of source names are given, only those sources are searched."""
+    be searched.If a list of source names are given, only those sources are searched.
+    
+    If prn = True, the results are printed on screen and nothing is returned.
+    
+    If cub is a float value, prices will be converted according to the given CUB
+    value (Custos básicos da construção civil / R8-N sem desoneração)"""
 
     #print "searching for :",pattern," sources: ",sourcenames," location: ",location
 
@@ -449,9 +491,9 @@ def search(pattern,location=None,sourcenames=[],code=False,prn=False):
         or ( location and ( (source.Country == location) or (source.City == location) ) ) \
         or ( sourcenames and (source.Name in sourcenames) ):
             if code:
-                results = source.getcode(pattern)
+                results = source.getcode(pattern,cub)
             else:
-                results = source.search(pattern)
+                results = source.search(pattern,cub)
             if results:
                 if prn:
                     for result in results:
@@ -477,18 +519,19 @@ if __name__ == "__main__":
                              source names to limit the search to.
              --code=XXX    : Searches for a specific code. Dots and hyphens are
                              ignored.
+             --cub=XXXX    : Gives a specific CUB value to convert values to
     """
     
     for s in sources:
-        print "Loaded",s.Name+(11-len(s.Name))*" ","(",str(s.Month).zfill(2),"/",s.Year,")",s.Currency,":",len(s.codes),"/",len(s.descriptions),"/",len(s.values),"/",len(s.units)
-
+        print "Loaded",s.Name+(11-len(s.Name))*" ","(",str(s.Month).zfill(2),"/",s.Year,")",s.Currency,":",len(s.codes),"/",len(s.descriptions),"/",len(s.values),"/",len(s.units)," - CUB:",s.CUB
+    print
 
     if len(sys.argv) == 1:
         # if no argument is given, print help text
         print helpmsg
     else:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "", ["location=","source=","code="])
+            opts, args = getopt.getopt(sys.argv[1:], "", ["location=","source=","code=","cub="])
         except getopt.GetoptError:
             print helpmsg
             sys.exit()
@@ -496,6 +539,7 @@ if __name__ == "__main__":
             location=None
             sourcenames=[]
             code=None
+            cub=None
             for o, a in opts:
                 if o == "--location":
                     location = a
@@ -504,7 +548,14 @@ if __name__ == "__main__":
                 elif o == "--code":
                     args = a
                     code = True
-            search(args,location,sourcenames,code,prn=True)
+                elif o == "--cub":
+                    try:
+                        cub = float(a)
+                    except:
+                        print helpmsg
+                        print "Error - cub must be a float value"
+                        sys.exit()
+            search(args,location,sourcenames,code,prn=True,cub=cub)
 
 
 
