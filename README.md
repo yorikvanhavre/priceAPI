@@ -39,6 +39,8 @@ the search terms. Use a | character to separate alternative search term
                          
 `--code=XXX`: Searches for a specific code. Dots and hyphens are ignored.
 
+`--cub=XXXX` : Converts prices from the CUB value stored in the source to the given CUB value
+
 Example: `priceapi.py --source=PMSP alvenaria 14cm`
 
 The API can also be used from python:
@@ -84,7 +86,7 @@ automatically.
 * ~~Allow to search by code~~
 * ~~Add computer-readable output~~
 * ~~Allow to use the script from the command line~~
-* Allow to convert/update prices by using an index value like CUB in Brazil
+* ~~Allow to convert/update prices by using an index value like CUB in Brazil~~
 * Add more sources (outside Brazil if possible)
 * ~~Build a GUI?~~
 * Parse the SINAPI pdfs (currently using an xlsx from a website where a kind soul provides a conversion)
