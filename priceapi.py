@@ -456,7 +456,7 @@ class source_seinfra_ce(source):
         for i in range(5,sh.nrows):
             r = sh.row(i)
             if (r[0].ctype == xlrd.XL_CELL_TEXT) and (r[1].ctype == xlrd.XL_CELL_TEXT) and (r[4].ctype == xlrd.XL_CELL_TEXT) and (r[5].ctype == xlrd.XL_CELL_NUMBER):
-                self.codes.append(r[0])
+                self.codes.append(r[0].value)
                 self.descriptions.append(r[1].value)
                 self.units.append(r[4].value)
                 self.values.append(r[5].value)
