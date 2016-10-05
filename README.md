@@ -13,6 +13,7 @@ New data sources can be added by instantiating the base source class, and writin
 * PMSP (Prefeitura Municipal de São Paulo)
 * FDE-SP (Secretaria da Educação do Estado de São Paulo)
 * SINAPI-SP (Sistema de pesquisa de preços unitários da Caixa Federal - Estado de São Paulo)
+* SEINFRA-CE (Secretaria de Infraestrutura do Estado do Ceará)
 
 ## Installation
 

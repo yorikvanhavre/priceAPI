@@ -366,7 +366,7 @@ class source_pmsp(source):
                 self.descriptions.append(r[1].value)
                 self.units.append(r[7].value)
                 self.values.append(r[9].value)
-        f.close()
+        #f.close()
         print "parsed data: ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
 
 
@@ -416,18 +416,67 @@ class source_sinapi(source):
         print "parsed data: ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
 
 
-sources = [source_fde(),source_pmsp(),source_sinapi()]
+class source_seinfra_ce(source):
+
+    """Secretaria de Infraestutura do Ceará"""
+
+    def __init__(self):
+        source.__init__(self)
+        self.Name = "SEINFRA-CE"
+        self.Description = "Secretaria de Infraestutura do Ceará"
+        self.URL = "http://www.seinfra.ce.gov.br/siproce/onerada/Tabela-de-Insumos-024.xls?a=1463159682253"
+        self.City = "Fortaleza"
+        self.Country = "Brazil"
+        self.Month = 03
+        self.Year = 2016
+        self.refURL = "http://www.seinfra.ce.gov.br/index.php/tabela-de-custos-unificada"
+        self.Currency = "BRL"
+        self.defaultfile = "seinfra-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
+        self.loaddefault(self.defaultfile)
+        self.CUB = 1064.12
+
+    def build(self):
+        import xlrd
+        tf = None
+        if not tf:
+            defaultlocation = os.path.dirname(os.path.abspath(__file__))+os.sep+"sources"+os.sep+"seinfra.xls"
+            if os.path.exists(defaultlocation):
+                print "building from ",defaultlocation
+                tf = defaultlocation
+            else:
+                tf = self.download()
+        if not tf:
+            return
+        f = xlrd.open_workbook(tf)
+        self.descriptions = []
+        self.values = []
+        self.units = []
+        self.codes = []
+        sh = f.sheets()[0]
+        for i in range(5,sh.nrows):
+            r = sh.row(i)
+            if (r[0].ctype == xlrd.XL_CELL_TEXT) and (r[1].ctype == xlrd.XL_CELL_TEXT) and (r[4].ctype == xlrd.XL_CELL_TEXT) and (r[5].ctype == xlrd.XL_CELL_NUMBER):
+                self.codes.append(r[0])
+                self.descriptions.append(r[1].value)
+                self.units.append(r[4].value)
+                self.values.append(r[5].value)
+        #f.close()
+        print "parsed data: ",len(self.codes),"/",len(self.descriptions),"/",len(self.values),"/",len(self.units)
+
+
+
+sources = [source_fde(),source_pmsp(),source_sinapi(),source_seinfra_ce()]
 
 
 def tabulate(orig, cod, descr, val, unit):
 
     """prints the 5 pieces of data in a table"""
 
-    col1 = 11
+    col1 = 12
     col2 = 12
     try:
         rows, columns = os.popen('stty size', 'r').read().split()
-        col3 = int(columns) - 36
+        col3 = int(columns) - 37
     except:
         col3 = 72
     col4 = 10
