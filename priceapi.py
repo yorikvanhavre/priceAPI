@@ -335,16 +335,18 @@ class source_pmsp(source):
         self.City = "São Paulo"
         self.Country = "Brazil"
         self.Month = 01
-        self.Year = 2016
+        self.Year = 2017
         self.refURL = "http://www.prefeitura.sp.gov.br/cidade/secretarias/infraestrutura/tabelas_de_custos/index.php?p=215107"
         self.Currency = "BRL"
         self.defaultfile = "pmsp-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
         self.loaddefault(self.defaultfile)
-        self.CUB = 1232.14
+        self.CUB = 1295.95
 
     def build(self):
         import xlrd
-        tf = self.download()
+        tf = os.path.dirname(os.path.abspath(__file__))+os.sep+"sources"+os.sep+"pmsp.xls"
+        if not tf:
+            tf = self.download()
         if not tf:
             return
         f = xlrd.open_workbook(tf)
