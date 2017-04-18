@@ -383,13 +383,13 @@ class source_sinapi(source):
         self.URL = "http://www.caixa.gov.br/Downloads/sinapi-a-partir-jul-2014-sp/SINAPI_ref_Insumos_Composicoes_SP_062016_NaoDesonerado.zip"
         self.City = "São Paulo"
         self.Country = "Brazil"
-        self.Month = 07
-        self.Year = 2016
+        self.Month = 01
+        self.Year = 2017
         self.refURL = "https://sinapiexcel.wordpress.com/"
         self.Currency = "BRL"
         self.defaultfile = "sinapi-"+str(self.Year)+"."+str(self.Month).zfill(2)+".csv"
         self.loaddefault(self.defaultfile)
-        self.CUB = 1292.18
+        self.CUB = 1295.95
 
     def build(self):
         import openpyxl
